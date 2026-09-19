@@ -1,0 +1,31 @@
+# The dsh-plugin-auth-gate bundle patch: replace the profile's transport row
+# with the gated server so every HTTP route, WebSocket upgrade, and the SPA
+# fallback sit behind the login gate regardless of registration order.
+#
+# A patch replaces the targeted row's whole config, so the webserver row below
+# restates every key the shipped web-app bundle owns. Install this bundle AFTER
+# dsh-web-app in the profile's dsh.profile.bundles list.
+#
+# Login-gate configuration lives under `auth`. dataDir defaults to
+# '<workspace>/.dsh-auth'; accounts, MFA secrets, sessions, and lockouts are
+# stored there and never shared across workspaces.
+
+- id: webserver
+  name: 'dsh-plugin-auth-gate/webserver'
+  inject: [webStartup]
+  config:
+    host: !!js ctx.webStartup.host ?? '127.0.0.1'
+    port: !!js ctx.webStartup.port ?? 3080
+    # Remote responses compress automatically; edge caches may additionally
+    # hold the login page's immutable assets, everything auth-related is
+    # Cache-Control: no-store.
+    compression: gzip
+    compressionLevel: 1
+    compressionThresholdBytes: 1024
+    auth:
+      dataDir: ''
+      cookieName: dsh_auth
+      sessionTtlHours: 168
+      publicPaths: []
+      trustProxy: false
+      issuer: DSH
